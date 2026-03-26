@@ -1,23 +1,12 @@
-﻿namespace Demineur
-{
-    /// <summary>
-    /// Niveau de difficulté du jeu
-    /// </summary>
-    enum Difficulty
-    {
-        Easy = 1,
-        Medium = 2,
-        Hard = 3
-    }
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-    /// <summary>
-    /// État visuel d'une cellule du plateau
-    /// </summary>
-    enum CellState
+namespace Demineur.Features
+{
+    internal class Enum
     {
-        Hidden,   // Case non explorée
-        Revealed, // Case explorée (ombragée gris)
-        Flagged,  // Flag posé par le joueur (ombragé vert)
-        Exploded  // Mine qui a explosé (*)
     }
 }
