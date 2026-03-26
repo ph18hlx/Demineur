@@ -63,6 +63,8 @@ namespace Demineur
             DisplayTitle();
             DisplayGameHeader();
             DrawBoard();
+            DisplayInstructions();
+            DisplayMinecounter();
 
             Console.ReadKey(true);
         }
@@ -321,5 +323,89 @@ namespace Demineur
                 return C_CROSS;
             }
         }
+
+        // ── Consignes ────────────────────────────────────────────────────────
+        /// <summary>
+        /// Affiche les consignes à droite su plateau de jeu
+        /// </summary>
+       static void DisplayInstructions()
+        {
+            // Positions à droite du plateau
+            int instrLeft = MARGIN_LEFT + nbCols * STEP_X + 4;
+            int top = MARGIN_TOP;
+
+            Console.SetCursorPosition(instrLeft, top);
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write("Consignes");
+
+            Console.SetCursorPosition(instrLeft, top + 1);
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write("----------");
+
+            Console.SetCursorPosition(instrLeft, top + 2);
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.Write("- Pour se deplacer : touches flechees");
+
+            Console.SetCursorPosition(instrLeft, top + 3);
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.Write("- Pour explorer une case : Entree");
+
+            Console.SetCursorPosition(instrLeft, top + 4);
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.Write("- Pour poser un flag : Espace");
+
+            Console.SetCursorPosition(instrLeft, top + 5);
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.Write("- Entree sur un flag : enleve le flag");
+
+            Console.SetCursorPosition(instrLeft, top + 6);
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.Write("- Pour quitter : Echap");
+
+            Console.SetCursorPosition(instrLeft, top + 8);
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write("La partie est gagnee :");
+
+            Console.SetCursorPosition(instrLeft, top + 9);
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.Write("- une fois que toutes les cases");
+
+            Console.SetCursorPosition(instrLeft, top + 10);
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.Write("  ont ete explorees");
+
+            Console.SetCursorPosition(instrLeft, top + 11);
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.Write("- que toutes les mines n'ont");
+
+            Console.SetCursorPosition(instrLeft, top + 12);
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.Write("  pas ete explosees");
+
+            Console.ResetColor();
+        }
+
+        // ── Compteur de mines ────────────────────────────────────────────────
+        
+        /// <summary>
+        /// Affiche le compteur de mines restantes sous le plateau
+        /// </summary>
+        static void DisplayMinecounter()
+        {
+            int bottomRow = MARGIN_TOP + nbRows * STEP_Y + 2;
+
+            Console.SetCursorPosition(0, bottomRow);
+            Console.Write("il reste encore ");
+
+
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.BackgroundColor = ConsoleColor.DarkBlue;
+            Console.Write(nbMines);
+            Console.ResetColor();
+
+            Console.Write(" mine(s) cachee(s)");
+        }
+
+
     }
 }
