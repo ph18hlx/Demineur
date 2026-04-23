@@ -3,7 +3,7 @@
 namespace Demineur
 {
     /// <summary>
-    /// Séquence 1-2 : titre, saisie grille, difficulté, calcul mines, début plateau
+    /// Séquence 4 : déplacement avec touches fléchées, flag avec Espace, Echap pour quitter
     /// </summary>
     class Program
     {
@@ -41,6 +41,13 @@ namespace Demineur
         static int nbMines;
         static int difficulty;
 
+        // Variables du curseur
+        static int posL = 0;
+        static int posC = 0;
+
+        // Tableau des flags posés par le joueur
+        static bool[,] flags;
+
         static void Main(string[] args)
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -58,15 +65,54 @@ namespace Demineur
             // 4. Calcul et mémorisation du nombre de mines
             nbMines = CalcNbMines();
 
-            // 5. Début de la construction du tableau de jeu
+            // 5. Tableau de jeu terminé + consignes + compteur mines
             Console.Clear();
             DisplayTitle();
             DisplayGameHeader();
             DrawBoard();
             DisplayInstructions();
-            DisplayMinecounter();
+            DisplayMineCounter();
 
-            Console.ReadKey(true);
+            // 6. Initialisation du tableau de flags
+            flags = new bool[nbRows, nbCols];
+
+            // 7. Placement du curseur sur la 1ère case
+            PlaceCursor();
+
+            // 8. Boucle de déplacement et actions
+            bool gameOver = false;
+
+            while (gameOver == false)
+            {
+                ConsoleKeyInfo key = Console.ReadKey(true);
+
+                if (key.Key == ConsoleKey.UpArrow ||
+                    key.Key == ConsoleKey.DownArrow ||
+                    key.Key == ConsoleKey.LeftArrow ||
+                    key.Key == ConsoleKey.RightArrow)
+                {
+                    MoveCursor(key.Key);
+                }
+                else if (key.Key == ConsoleKey.Spacebar)
+                {
+                    // Espace : pose un flag
+                    PlaceFlag();
+                }
+                else if (key.Key == ConsoleKey.Enter)
+                {
+                    // Enter : enlève le flag si il y en a un
+                    RemoveFlag();
+                }
+                else if (key.Key == ConsoleKey.Escape)
+                {
+                    gameOver = true;
+                }
+
+                if (gameOver == false)
+                {
+                    PlaceCursor();
+                }
+            }
         }
 
         // ── Affichage du titre ───────────────────────────────────────────────
@@ -323,14 +369,121 @@ namespace Demineur
                 return C_CROSS;
             }
         }
+        // ── Déplacement du curseur ───────────────────────────────────────────
 
-        // ── Consignes ────────────────────────────────────────────────────────
         /// <summary>
-        /// Affiche les consignes à droite su plateau de jeu
+        /// Déplace le curseur selon la touche directionnelle pressée.
+        /// Le curseur revient de l'autre côté si on dépasse un bord.
         /// </summary>
-       static void DisplayInstructions()
+        /// <param name="key">Touche pressée par l'utilisateur</param>
+        static void MoveCursor(ConsoleKey key)
         {
-            // Positions à droite du plateau
+            if (key == ConsoleKey.UpArrow)
+            {
+                if (posL - 1 >= 0)
+                {
+                    posL = posL - 1;
+                }
+                else
+                {
+                    posL = nbRows - 1;
+                }
+            }
+            else if (key == ConsoleKey.DownArrow)
+            {
+                if (posL + 1 < nbRows)
+                {
+                    posL = posL + 1;
+                }
+                else
+                {
+                    posL = 0;
+                }
+            }
+            else if (key == ConsoleKey.LeftArrow)
+            {
+                if (posC - 1 >= 0)
+                {
+                    posC = posC - 1;
+                }
+                else
+                {
+                    posC = nbCols - 1;
+                }
+            }
+            else if (key == ConsoleKey.RightArrow)
+            {
+                if (posC + 1 < nbCols)
+                {
+                    posC = posC + 1;
+                }
+                else
+                {
+                    posC = 0;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Place le curseur console au milieu de la cellule courante.
+        /// Formule : MARGIN_LEFT + STEP_X/2 + posC * STEP_X
+        ///           MARGIN_TOP  + STEP_Y/2 + posL * STEP_Y
+        /// </summary>
+        static void PlaceCursor()
+        {
+            int left = MARGIN_LEFT + STEP_X / 2 + posC * STEP_X;
+            int top = MARGIN_TOP + STEP_Y / 2 + posL * STEP_Y;
+            Console.SetCursorPosition(left, top);
+        }
+
+        // ── Flag ─────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Pose un flag sur la cellule courante (touche Espace).
+        /// Affiche le caractère ombragé en vert si la case est libre.
+        /// </summary>
+        static void PlaceFlag()
+        {
+            if (flags[posL, posC] == false)
+            {
+                flags[posL, posC] = true;
+
+                int left = MARGIN_LEFT + STEP_X / 2 + posC * STEP_X;
+                int top = MARGIN_TOP + STEP_Y / 2 + posL * STEP_Y;
+
+                Console.SetCursorPosition(left, top);
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.BackgroundColor = ConsoleColor.DarkGray;
+                Console.Write('▒');
+                Console.ResetColor();
+            }
+        }
+
+        /// <summary>
+        /// Enlève le flag sur la cellule courante (touche Enter).
+        /// Efface le caractère ombragé si un flag est posé.
+        /// </summary>
+        static void RemoveFlag()
+        {
+            if (flags[posL, posC] == true)
+            {
+                flags[posL, posC] = false;
+
+                int left = MARGIN_LEFT + STEP_X / 2 + posC * STEP_X;
+                int top = MARGIN_TOP + STEP_Y / 2 + posL * STEP_Y;
+
+                Console.SetCursorPosition(left, top);
+                Console.Write(' ');
+            }
+        }
+        // ── Consignes ────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Affiche les consignes à droite du plateau de jeu
+        /// </summary>
+        static void DisplayInstructions()
+        {
+            // Position à droite du plateau
             int instrLeft = MARGIN_LEFT + nbCols * STEP_X + 4;
             int top = MARGIN_TOP;
 
@@ -386,17 +539,16 @@ namespace Demineur
         }
 
         // ── Compteur de mines ────────────────────────────────────────────────
-        
+
         /// <summary>
         /// Affiche le compteur de mines restantes sous le plateau
         /// </summary>
-        static void DisplayMinecounter()
+        static void DisplayMineCounter()
         {
             int bottomRow = MARGIN_TOP + nbRows * STEP_Y + 2;
 
             Console.SetCursorPosition(0, bottomRow);
             Console.Write("il reste encore ");
-
 
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.BackgroundColor = ConsoleColor.DarkBlue;
@@ -405,7 +557,5 @@ namespace Demineur
 
             Console.Write(" mine(s) cachee(s)");
         }
-
-
     }
 }
