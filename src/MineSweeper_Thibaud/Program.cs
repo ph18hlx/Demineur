@@ -3,7 +3,7 @@
 namespace Demineur
 {
     /// <summary>
-    /// Séquence 4 : déplacement avec touches fléchées, flag avec Espace, Echap pour quitter
+    /// Séquence 5 : tableau 2D du plateau, placement aléatoire des mines
     /// </summary>
     class Program
     {
@@ -48,6 +48,12 @@ namespace Demineur
         // Tableau des flags posés par le joueur
         static bool[,] flags;
 
+        // Tableau 2D représentant le visuel du plateau (true = mine)
+        static bool[,] hasMine;
+
+        // Tableau 2D représentant les cases explorées
+        static bool[,] revealed;
+
         static void Main(string[] args)
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -73,8 +79,13 @@ namespace Demineur
             DisplayInstructions();
             DisplayMineCounter();
 
-            // 6. Initialisation du tableau de flags
+            // 6. Initialisation des tableaux
             flags = new bool[nbRows, nbCols];
+            hasMine = new bool[nbRows, nbCols];
+            revealed = new bool[nbRows, nbCols];
+
+            // 7. Placement aléatoire des mines dans le tableau
+            PlaceMines();
 
             // 7. Placement du curseur sur la 1ère case
             PlaceCursor();
@@ -369,6 +380,31 @@ namespace Demineur
                 return C_CROSS;
             }
         }
+        // ── Placement des mines ──────────────────────────────────────────────
+
+        /// <summary>
+        /// Place les mines aléatoirement dans le tableau hasMine.
+        /// Utilise Random pour choisir des positions aléatoires.
+        /// Une case ne peut contenir qu'une seule mine.
+        /// </summary>
+        static void PlaceMines()
+        {
+            Random rnd = new Random();
+            int placed = 0;
+
+            while (placed < nbMines)
+            {
+                int r = rnd.Next(nbRows);
+                int c = rnd.Next(nbCols);
+
+                if (hasMine[r, c] == false)
+                {
+                    hasMine[r, c] = true;
+                    placed = placed + 1;
+                }
+            }
+        }
+
         // ── Déplacement du curseur ───────────────────────────────────────────
 
         /// <summary>
