@@ -3,7 +3,8 @@
 namespace Demineur
 {
     /// <summary>
-    /// Séquence 5 : tableau 2D du plateau, placement aléatoire des mines
+    /// Séquence 6-7 : finalisation du jeu, exploration des cases, affichage des mines,
+    /// mise à jour du compteur, conditions de victoire/défaite, rejouer
     /// </summary>
     class Program
     {
@@ -54,6 +55,9 @@ namespace Demineur
         // Tableau 2D représentant les cases explorées
         static bool[,] revealed;
 
+        // Nombre de mines restantes à trouver
+        static int minesLeft;
+
         static void Main(string[] args)
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -87,43 +91,108 @@ namespace Demineur
             // 7. Placement aléatoire des mines dans le tableau
             PlaceMines();
 
-            // 7. Placement du curseur sur la 1ère case
-            PlaceCursor();
+            minesLeft = nbMines;
 
-            // 8. Boucle de déplacement et actions
-            bool gameOver = false;
+            bool playAgain = true;
 
-            while (gameOver == false)
+            while (playAgain == true)
             {
-                ConsoleKeyInfo key = Console.ReadKey(true);
+                // Réinitialisation
+                posL = 0;
+                posC = 0;
+                minesLeft = nbMines;
+                flags = new bool[nbRows, nbCols];
+                hasMine = new bool[nbRows, nbCols];
+                revealed = new bool[nbRows, nbCols];
 
-                if (key.Key == ConsoleKey.UpArrow ||
-                    key.Key == ConsoleKey.DownArrow ||
-                    key.Key == ConsoleKey.LeftArrow ||
-                    key.Key == ConsoleKey.RightArrow)
+                PlaceMines();
+
+                Console.Clear();
+                DisplayTitle();
+                DisplayGameHeader();
+                DrawBoard();
+                DisplayInstructions();
+                DisplayMineCounter();
+
+                PlaceCursor();
+
+                bool gameOver = false;
+                bool playerWon = false;
+
+                while (gameOver == false)
                 {
-                    MoveCursor(key.Key);
-                }
-                else if (key.Key == ConsoleKey.Spacebar)
-                {
-                    // Espace : pose un flag
-                    PlaceFlag();
-                }
-                else if (key.Key == ConsoleKey.Enter)
-                {
-                    // Enter : enlève le flag si il y en a un
-                    RemoveFlag();
-                }
-                else if (key.Key == ConsoleKey.Escape)
-                {
-                    gameOver = true;
+                    ConsoleKeyInfo key = Console.ReadKey(true);
+
+                    if (key.Key == ConsoleKey.UpArrow ||
+                        key.Key == ConsoleKey.DownArrow ||
+                        key.Key == ConsoleKey.LeftArrow ||
+                        key.Key == ConsoleKey.RightArrow)
+                    {
+                        MoveCursor(key.Key);
+                    }
+                    else if (key.Key == ConsoleKey.Spacebar)
+                    {
+                        PlaceFlag();
+                    }
+                    else if (key.Key == ConsoleKey.Enter)
+                    {
+                        if (flags[posL, posC] == true)
+                        {
+                            RemoveFlag();
+                        }
+                        else
+                        {
+                            bool exploded = RevealCell();
+
+                            if (exploded == true)
+                            {
+                                gameOver = true;
+                                playerWon = false;
+                            }
+                        }
+                    }
+                    else if (key.Key == ConsoleKey.Escape)
+                    {
+                        gameOver = true;
+                        playerWon = false;
+                    }
+
+                    if (gameOver == false)
+                    {
+                        DisplayMineCounter();
+
+                        bool won = CheckWin();
+                        if (won == true)
+                        {
+                            gameOver = true;
+                            playerWon = true;
+                        }
+                    }
+
+                    if (gameOver == false)
+                    {
+                        PlaceCursor();
+                    }
                 }
 
-                if (gameOver == false)
+                // Fin de partie
+                DisplayEndMessage(playerWon);
+                playAgain = AskPlayAgain();
+
+                if (playAgain == true)
                 {
-                    PlaceCursor();
+                    Console.Clear();
+                    DisplayTitle();
+                    AskGridSize();
+                    AskDifficulty();
+                    nbMines = CalcNbMines();
                 }
             }
+
+            Console.Clear();
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("Au revoir et a bientot !");
+            Console.ResetColor();
         }
 
         // ── Affichage du titre ───────────────────────────────────────────────
@@ -380,6 +449,174 @@ namespace Demineur
                 return C_CROSS;
             }
         }
+        // ── Exploration d'une case ───────────────────────────────────────────
+
+        /// <summary>
+        /// Explore la case courante.
+        /// Retourne true si une mine a explosé, false sinon.
+        /// </summary>
+        /// <returns>true = mine explosée, game over</returns>
+        static bool RevealCell()
+        {
+            if (revealed[posL, posC] == true)
+            {
+                return false;
+            }
+
+            revealed[posL, posC] = true;
+
+            int left = MARGIN_LEFT + STEP_X / 2 + posC * STEP_X;
+            int top = MARGIN_TOP + STEP_Y / 2 + posL * STEP_Y;
+
+            if (hasMine[posL, posC] == true)
+            {
+                // Mine explosée
+                Console.SetCursorPosition(left, top);
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Write('*');
+                Console.ResetColor();
+
+                minesLeft = minesLeft - 1;
+                RevealAllMines();
+                return true;
+            }
+            else
+            {
+                // Case sûre : affiche le caractère ombragé en gris
+                Console.SetCursorPosition(left, top);
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.BackgroundColor = ConsoleColor.DarkGray;
+                Console.Write('▒');
+                Console.ResetColor();
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Révèle toutes les mines restantes sur le plateau en fin de partie
+        /// </summary>
+        static void RevealAllMines()
+        {
+            for (int r = 0; r < nbRows; r++)
+            {
+                for (int c = 0; c < nbCols; c++)
+                {
+                    if (hasMine[r, c] == true && revealed[r, c] == false)
+                    {
+                        revealed[r, c] = true;
+
+                        int left = MARGIN_LEFT + STEP_X / 2 + c * STEP_X;
+                        int top = MARGIN_TOP + STEP_Y / 2 + r * STEP_Y;
+
+                        Console.SetCursorPosition(left, top);
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.Write('*');
+                        Console.ResetColor();
+                    }
+                }
+            }
+        }
+
+        // ── Condition de victoire ────────────────────────────────────────────
+
+        /// <summary>
+        /// Vérifie si le joueur a gagné :
+        /// - toutes les cases sans mine ont été explorées, OU
+        /// - toutes les mines sont flagguées
+        /// </summary>
+        /// <returns>true si la partie est gagnée</returns>
+        static bool CheckWin()
+        {
+            bool allSafeRevealed = true;
+            bool allMinesFlagged = true;
+
+            for (int r = 0; r < nbRows; r++)
+            {
+                for (int c = 0; c < nbCols; c++)
+                {
+                    if (hasMine[r, c] == false && revealed[r, c] == false)
+                    {
+                        allSafeRevealed = false;
+                    }
+
+                    if (hasMine[r, c] == true && flags[r, c] == false)
+                    {
+                        allMinesFlagged = false;
+                    }
+                }
+            }
+
+            if (allSafeRevealed == true || allMinesFlagged == true)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        // ── Fin de partie ────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Affiche le message de fin de partie selon le résultat
+        /// </summary>
+        /// <param name="won">true si le joueur a gagné</param>
+        static void DisplayEndMessage(bool won)
+        {
+            int bottomRow = MARGIN_TOP + nbRows * STEP_Y + 3;
+
+            Console.SetCursorPosition(0, bottomRow);
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine();
+            Console.WriteLine("C'est la fin !");
+            Console.WriteLine();
+
+            if (won == true)
+            {
+                Console.BackgroundColor = ConsoleColor.DarkGreen;
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine("!! BRAVO !! Vous avez reussi a pas marcher sur toutes les mines !");
+                Console.ResetColor();
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.WriteLine("Il restait " + minesLeft + " sur " + nbMines + " mines");
+            }
+            else
+            {
+                Console.BackgroundColor = ConsoleColor.DarkRed;
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine("BOOM ! Vous avez saute sur une mine !");
+                Console.ResetColor();
+            }
+
+            Console.ResetColor();
+            Console.WriteLine();
+        }
+
+        /// <summary>
+        /// Demande si le joueur veut rejouer
+        /// </summary>
+        /// <returns>true si le joueur veut rejouer</returns>
+        static bool AskPlayAgain()
+        {
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("Voulez-vous recommencer ?");
+            Console.Write("(o) pour oui, autre touche pour quitter ! : ");
+            Console.ResetColor();
+
+            ConsoleKeyInfo key = Console.ReadKey(true);
+            Console.WriteLine();
+
+            if (key.KeyChar == 'o' || key.KeyChar == 'O')
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         // ── Placement des mines ──────────────────────────────────────────────
 
         /// <summary>
@@ -581,6 +818,9 @@ namespace Demineur
         /// </summary>
         static void DisplayMineCounter()
         {
+            int savedLeft = Console.CursorLeft;
+            int savedTop = Console.CursorTop;
+
             int bottomRow = MARGIN_TOP + nbRows * STEP_Y + 2;
 
             Console.SetCursorPosition(0, bottomRow);
@@ -588,10 +828,12 @@ namespace Demineur
 
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.BackgroundColor = ConsoleColor.DarkBlue;
-            Console.Write(nbMines);
+            Console.Write(minesLeft);
             Console.ResetColor();
 
-            Console.Write(" mine(s) cachee(s)");
+            Console.Write(" mine(s) cachee(s)   ");
+
+            Console.SetCursorPosition(savedLeft, savedTop);
         }
     }
 }
